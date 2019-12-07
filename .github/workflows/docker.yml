@@ -1,0 +1,31 @@
+name: Docker Image CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build and publish docker images
+      run: |
+        set -eu
+
+        echo "${DOCKER_TOKEN}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
+
+        for file in */Dockerfile; do
+          d="$(dirname "$file")"
+          n="${DOCKER_USERNAME}/$(basename "$d")"
+
+          echo "Building and publishing $n in $d"
+
+          cd "$d"
+          docker build -t "$n:latest" -t "$n:$GITHUB_SHA" .
+          docker push "$n:latest"
+          docker push "$n:$GITHUB_SHA"
+          cd ..
+        done
+      env:
+        DOCKER_USERNAME: anderscarling
+        DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
